@@ -1,0 +1,7 @@
+# 工作区根目录通用忽略（子目录可有各自的 .gitignore）
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.idea/
+.vscode/
