@@ -210,6 +210,32 @@
       +
     </button>
 
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 translate-y-2 scale-95"
+      enter-to-class="opacity-100 translate-y-0 scale-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0 scale-100"
+      leave-to-class="opacity-0 translate-y-2 scale-95"
+    >
+      <button
+        v-if="showBackTop"
+        type="button"
+        class="fixed z-30 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-lg backdrop-blur-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800/95 dark:text-slate-200 dark:hover:bg-slate-700/90 right-4 md:right-8"
+        :class="auth.isLoggedIn ? 'bottom-44 md:bottom-36' : 'bottom-24 md:bottom-8'"
+        aria-label="返回顶部"
+        @click="scrollToTop"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path
+            fill-rule="evenodd"
+            d="M10 15a.75.75 0 01-.75-.75V6.56l-2.22 2.22a.75.75 0 11-1.06-1.06l3.5-3.5a.75.75 0 011.06 0l3.5 3.5a.75.75 0 01-1.06 1.06l-2.22-2.22v7.69A.75.75 0 0110 15z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </button>
+    </Transition>
+
     <BottomNav />
 
     <Teleport to="body">
@@ -283,6 +309,8 @@ import { useAuthStore } from '../stores/auth';
 import { resolveMediaUrl } from '../utils/media';
 
 const DM_PREVIEW_LIMIT = 8;
+/** 纵向滚动超过该像素后显示「返回顶部」 */
+const SCROLL_BACK_TOP_PX = 320;
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -298,6 +326,7 @@ const errorMsg = ref('');
 const mainEl = ref(null);
 const sentinel = ref(null);
 
+const showBackTop = ref(false);
 const composeOpen = ref(false);
 const submitting = ref(false);
 const draft = ref({
@@ -595,12 +624,23 @@ function setupObserver() {
   if (sentinel.value) observer.observe(sentinel.value);
 }
 
+function updateBackTopVisibility() {
+  showBackTop.value = window.scrollY >= SCROLL_BACK_TOP_PX;
+}
+
+function scrollToTop() {
+  const instant = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: 0, behavior: instant ? 'auto' : 'smooth' });
+}
+
 onMounted(async () => {
   await loadChannels();
   await loadPosts(true);
   await loadDmBrief({ force: true });
   await nextTick();
   setupObserver();
+  updateBackTopVisibility();
+  window.addEventListener('scroll', updateBackTopVisibility, { passive: true });
   document.addEventListener('click', onDmDocClick);
 });
 
@@ -623,6 +663,7 @@ watch(() => auth.isLoggedIn, (logged) => {
 
 onUnmounted(() => {
   observer?.disconnect();
+  window.removeEventListener('scroll', updateBackTopVisibility);
   clearTimeout(dmLeaveTimer);
   clearTimeout(dmEnterDebounceTimer);
   clearTimeout(profileLeaveTimer);

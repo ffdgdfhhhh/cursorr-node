@@ -1,12 +1,13 @@
 -- 创享社区 MySQL 8.0 初始化脚本
 -- 使用：mysql -u root -p < database.sql
 -- 或在客户端中执行以下语句后，再由 Sequelize sync 维护结构（推荐开发时用 npm run dev 自动建表）
+-- 关注表 follows 已包含在文末（原独立脚本 add-follows-table.sql 已合并至此）。老库补表可整文件执行，CREATE TABLE IF NOT EXISTS 不影响已有表。
 
--- CREATE DATABASE IF NOT EXISTS `chuangxiang_blog`
---   DEFAULT CHARACTER SET utf8mb4
---   COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS `chuangxiang_blog`
+  DEFAULT CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 
--- USE `chuangxiang_blog`;
+USE `chuangxiang_blog`;
 
 -- 以下为参考 DDL，与 Sequelize 模型字段一致；若已使用 sequelize.sync() 建表，可跳过 CREATE TABLE。
 
