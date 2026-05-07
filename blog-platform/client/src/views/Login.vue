@@ -70,36 +70,64 @@
       </div>
 
       <form class="space-y-4" @submit.prevent="submit">
-        <div v-if="tab === 'register'">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">用户名</label>
-          <input
-            v-model="form.username"
-            type="text"
-            maxlength="50"
-            required
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">邮箱</label>
-          <input
-            v-model="form.email"
-            type="email"
-            required
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">密码</label>
-          <input
-            v-model="form.password"
-            type="password"
-            minlength="6"
-            required
-            class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
-          />
-          <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">至少 6 位字符</p>
-        </div>
+        <template v-if="tab === 'login'">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">邮箱</label>
+            <input
+              v-model="form.email"
+              type="email"
+              autocomplete="username"
+              required
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">密码</label>
+            <input
+              v-model="form.password"
+              type="password"
+              autocomplete="current-password"
+              minlength="6"
+              required
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">邮箱</label>
+            <input
+              v-model="form.email"
+              type="email"
+              autocomplete="email"
+              required
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">密码</label>
+            <input
+              v-model="form.password"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
+            />
+            <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">至少 6 位字符</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">确认密码</label>
+            <input
+              v-model="form.passwordConfirm"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-100 dark:focus:ring-brand-900/50 outline-none"
+            />
+          </div>
+        </template>
         <p v-if="errorMsg" class="text-sm text-rose-600">{{ errorMsg }}</p>
         <button
           type="submit"
@@ -110,6 +138,20 @@
         </button>
       </form>
 
+      <p
+        v-if="tab === 'login'"
+        class="mt-4 text-center text-xs text-slate-500 dark:text-slate-400"
+      >
+        没有账号？
+        <button
+          type="button"
+          class="font-medium text-brand-600 hover:text-brand-700 hover:underline dark:text-brand-400 dark:hover:text-brand-300"
+          @click="tab = 'register'"
+        >
+          去注册
+        </button>
+      </p>
+
       <p class="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
         测试账号：user1@example.com / 123456
       </p>
@@ -118,7 +160,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
@@ -133,9 +175,14 @@ const errorMsg = ref('');
 const sessionExpired = computed(() => route.query.expired === '1');
 
 const form = reactive({
-  username: '',
   email: '',
   password: '',
+  passwordConfirm: '',
+});
+
+watch(tab, () => {
+  errorMsg.value = '';
+  form.passwordConfirm = '';
 });
 
 function goHomeFromLogin() {
@@ -164,12 +211,11 @@ async function submit() {
     if (tab.value === 'login') {
       res = await auth.login({ email: form.email, password: form.password });
     } else {
-      if (!form.username.trim()) {
-        errorMsg.value = '请填写用户名';
+      if (form.password !== form.passwordConfirm) {
+        errorMsg.value = '两次输入的密码不一致';
         return;
       }
       res = await auth.register({
-        username: form.username.trim(),
         email: form.email,
         password: form.password,
       });

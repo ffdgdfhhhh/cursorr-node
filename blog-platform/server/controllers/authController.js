@@ -4,6 +4,29 @@ const { User } = require('../models');
 
 const JWT_SECRET = () => process.env.JWT_SECRET || 'dev-secret';
 
+/** 未显式提供用户名时，从邮箱本地部分生成默认用户名（仅用于占用展示名，仍保证唯一） */
+function deriveUsernameFromEmail(email) {
+  const local = String(email).split('@')[0] || 'user';
+  const cleaned = local
+    .trim()
+    .replace(/[^\w\u4e00-\u9fa5-]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+  const base = (cleaned || 'user').slice(0, 50);
+  return base;
+}
+
+async function allocateUniqueUsername(preferred) {
+  let candidate = preferred.slice(0, 50);
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const exists = await User.findOne({ where: { username: candidate } });
+    if (!exists) return candidate;
+    const rnd = `${Date.now()}${Math.random()}`.replace(/\D/g, '').slice(-8);
+    candidate = `${preferred.slice(0, 41)}_${rnd}`.slice(0, 50);
+  }
+  return `user_${Date.now()}`.slice(0, 50);
+}
+
 function signToken(userId) {
   return jwt.sign({ userId }, JWT_SECRET(), { expiresIn: '7d' });
 }
@@ -16,9 +39,9 @@ function sanitizeUser(user) {
 
 exports.register = async (req, res, next) => {
   try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-      return res.status(400).json({ success: false, message: '用户名、邮箱和密码必填' });
+    const { username: rawUsername, email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: '邮箱和密码必填' });
     }
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: '密码至少6位' });
@@ -27,16 +50,23 @@ exports.register = async (req, res, next) => {
     if (!emailRe.test(email)) {
       return res.status(400).json({ success: false, message: '邮箱格式不正确' });
     }
-    const exists = await User.findOne({
-      where: { [require('sequelize').Op.or]: [{ email }, { username }] },
-    });
-    if (exists) {
-      return res.status(409).json({ success: false, message: '用户名或邮箱已存在' });
+    const emailNorm = String(email).slice(0, 100).toLowerCase();
+    const emailTaken = await User.findOne({ where: { email: emailNorm } });
+    if (emailTaken) {
+      return res.status(409).json({ success: false, message: '该邮箱已被注册' });
     }
+
+    let username =
+      rawUsername && String(rawUsername).trim() ? String(rawUsername).trim().slice(0, 50) : '';
+    if (!username) {
+      username = deriveUsernameFromEmail(emailNorm);
+    }
+    username = await allocateUniqueUsername(username);
+
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({
-      username: String(username).slice(0, 50),
-      email: String(email).slice(0, 100).toLowerCase(),
+      username,
+      email: emailNorm,
       password: hash,
     });
     const token = signToken(user.id);
