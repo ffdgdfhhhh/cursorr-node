@@ -177,7 +177,9 @@ async function bootstrap() {
 
     await markConversationRead(conversationId.value);
 
-    const url = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    const url =
+      import.meta.env.VITE_SOCKET_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
     const token = getToken();
     socket = io(url, {
       transports: ['websocket'],

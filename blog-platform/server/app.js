@@ -45,6 +45,8 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = Number(process.env.PORT) || 3000;
+/** 默认 0.0.0.0，避免仅监听 IPv6/回环导致 Nginx 反代 upstream 连接失败（502） */
+const LISTEN_HOST = process.env.LISTEN_HOST || '0.0.0.0';
 
 app.use(
   cors({
@@ -67,6 +69,25 @@ app.use('/api/posts', postRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 
+// 生产环境：同一端口提供前端打包产物（避免仅访问根路径时落到 404 JSON「接口不存在」）
+const clientDist = process.env.CLIENT_DIST_PATH
+  ? path.resolve(process.env.CLIENT_DIST_PATH)
+  : path.join(__dirname, '..', 'client', 'dist');
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get(/.*/, (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (req.path.startsWith('/api')) return next();
+    if (req.path.startsWith('/uploads')) return next();
+    res.sendFile(path.join(clientDist, 'index.html'), (err) => next(err));
+  });
+} else {
+  console.warn(
+    `[前端] 未找到打包目录: ${clientDist}\n` +
+      '  → GET /、/login 等会 404。请将本机执行 npm run build 生成的 client/dist 上传到服务器，或设置 CLIENT_DIST_PATH 为 dist 的绝对路径后重启。'
+  );
+}
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
@@ -77,8 +98,8 @@ async function bootstrap() {
     await sequelize.authenticate();
     await sequelize.sync();
     await seed();
-    server.listen(PORT, () => {
-      console.log(`创享社区 API & Socket 监听 http://localhost:${PORT}`);
+    server.listen(PORT, LISTEN_HOST, () => {
+      console.log(`创享社区 API & Socket 监听 http://${LISTEN_HOST}:${PORT}`);
     });
   } catch (err) {
     console.error('启动失败:', err.parent?.message || err.message || err);

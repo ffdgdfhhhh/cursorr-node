@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     port: 5173,
-    // 需与本机后端端口一致（默认 3000）；ECONNREFUSED 表示后端未启动或端口不对
+    // 开发时请求转发到线上 API；不可达时检查本机网络与目标服务
     proxy: {
-      '/api': { target: 'http://127.0.0.1:3000', changeOrigin: true },
-      '/uploads': { target: 'http://127.0.0.1:3000', changeOrigin: true },
+      '/api': { target: 'http://47.121.120.218', changeOrigin: true },
+      '/uploads': { target: 'http://47.121.120.218', changeOrigin: true },
     },
   },
 });
