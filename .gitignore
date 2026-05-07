@@ -5,3 +5,6 @@ Thumbs.db
 npm-debug.log*
 .idea/
 .vscode/
+
+# 本地打包上传用的压缩包（源码已在仓库中，拉取后无需 zip）
+*.zip
